@@ -666,6 +666,6 @@ Lead. Sus tres bloques de material de estudio —ciclo de vida de `useEffect` y
 `useRef`, uniones discriminadas en TypeScript, y la API de WebSockets— son
 exactamente los conceptos aplicados en las secciones 5 y 7 de este diseño.
 
-**Pendiente:** las preguntas concretas están en un PDF adjunto
-(`Evaluación de Challenge.pdf`, alojado en multica.ai) que no está disponible en
-el repositorio. Hay que descargarlo para poder trabajar sobre él.
+Las preguntas concretas de esa evaluación quedan fuera del alcance de este
+diseño: no forman parte de los tickets. Este documento cubre únicamente el
+challenge práctico del ticket 8.
