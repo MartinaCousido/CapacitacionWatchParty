@@ -69,8 +69,8 @@ CapacitacionWatchParty/
 ├── server/
 │   ├── src/
 │   │   ├── index.ts          Express + HTTP + WebSocketServer + ciclo de conexión
-│   │   └── rooms.ts          registro de salas (conexiones + historial)
-│   ├── src/rooms.test.ts
+│   │   ├── rooms.ts          registro de salas (conexiones + historial)
+│   │   └── rooms.test.ts     tests de aislamiento y limpieza (Vitest)
 │   ├── package.json
 │   └── tsconfig.json
 ├── client/
@@ -437,6 +437,7 @@ type Status = "connecting" | "open" | "closed" | "error";
 export function useRoomSocket(roomId: RoomId, user: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [status, setStatus]     = useState<Status>("connecting");
+  const [error, setError]       = useState<string | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -453,7 +454,7 @@ export function useRoomSocket(roomId: RoomId, user: string) {
       switch (event.type) {
         case "HISTORY": setMessages(event.messages); break;
         case "MESSAGE": setMessages(prev => [...prev, event.message]); break;
-        case "ERROR":   /* aviso al usuario */ break;
+        case "ERROR":   setError(event.reason); break;
       }
     };
 
@@ -473,9 +474,12 @@ export function useRoomSocket(roomId: RoomId, user: string) {
     if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(event));
   }, []);
 
-  return { messages, status, send };
+  return { messages, status, error, send };
 }
 ```
+
+`error` se muestra en `Room` como un aviso discreto sobre el input y se limpia al
+enviar el mensaje siguiente. Es el único uso del evento `ERROR` del contrato.
 
 #### Por qué el socket va en `useRef`
 
@@ -544,7 +548,11 @@ clic, `onJoin({ roomId, user })`.
   (Conectando… / En vivo / Se perdió la conexión, alimentado por `status`) y
   botón "Salir".
 - *Centro:* `MessageList`, ocupa el alto disponible y scrollea. Mensajes propios
-  a la derecha, ajenos a la izquierda, con autor y hora. Las reacciones se
+  a la derecha, ajenos a la izquierda, con autor y hora. "Propio" se determina
+  comparando `message.user` con el nombre de la sesión: si dos personas eligen el
+  mismo nombre, ambas verán los mensajes de la otra como propios. Es una
+  limitación aceptada — resolverla bien exigiría un id de cliente asignado por el
+  servidor, que no aporta a ningún criterio de evaluación. Las reacciones se
   dibujan distinto de los textos —más grandes, con el emoji protagonista— usando
   `kind` para decidir: la unión discriminada trabajando en la interfaz.
 - *Pie:* `ReactionBar` (fila con scroll horizontal en móvil) y `ChatInput`.
