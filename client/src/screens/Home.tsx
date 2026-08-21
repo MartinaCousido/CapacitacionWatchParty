@@ -1,13 +1,18 @@
-import { useState } from "react";
 import { MATCHES, MAX_USER_LENGTH } from "../../../shared/types";
-import type { Session } from "../App";
+import type { RoomId } from "../../../shared/types";
 
-type Props = { onJoin: (session: Session) => void };
+type Props = {
+  name: string;
+  onNameChange: (name: string) => void;
+  onJoin: (roomId: RoomId) => void;
+};
 
-export default function Home({ onJoin }: Props) {
-  const [name, setName] = useState("");
-  const trimmed = name.trim();
-  const canJoin = trimmed.length > 0;
+/**
+ * Componente controlado: no guarda el nombre, lo recibe y avisa cuando cambia.
+ * El dueño del dato es App, que sobrevive a la entrada y salida de las salas.
+ */
+export default function Home({ name, onNameChange, onJoin }: Props) {
+  const canJoin = name.trim().length > 0;
 
   return (
     <main className="min-h-full flex items-center justify-center p-6">
@@ -21,7 +26,7 @@ export default function Home({ onJoin }: Props) {
           <span className="text-sm font-medium text-slate-300">Tu nombre</span>
           <input
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(event) => onNameChange(event.target.value)}
             maxLength={MAX_USER_LENGTH}
             placeholder="Fan_123"
             className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-3
@@ -36,7 +41,7 @@ export default function Home({ onJoin }: Props) {
               key={match.id}
               type="button"
               disabled={!canJoin}
-              onClick={() => onJoin({ roomId: match.id, user: trimmed })}
+              onClick={() => onJoin(match.id)}
               className="w-full rounded-xl border border-slate-800 bg-gradient-to-r
                          from-slate-900 to-slate-800 px-5 py-4 text-left text-lg font-semibold
                          transition hover:border-emerald-600 hover:from-slate-800

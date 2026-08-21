@@ -223,6 +223,27 @@ desde la consola del navegador. Verificado también en pantallas angostas
 (390px de ancho): la barra de reacciones scrollea internamente y la página
 no desborda horizontalmente.
 
+## Cómo se recuerda el nombre del usuario
+
+El nombre no vive dentro de `Home`, sino en `App`. El motivo es concreto: al
+entrar a una sala, `App` desmonta `Home`, y un componente desmontado no
+conserva su estado. Si el nombre viviera ahí, volver al Home significaría
+montar un `Home` nuevo, en blanco, y tener que escribirlo otra vez.
+
+Al subirlo a `App`, `Home` pasa a ser un componente **controlado**: recibe el
+nombre y avisa cuando cambia, pero no lo guarda. Editarlo sale gratis, porque
+el input del Home aparece con el valor actual.
+
+Para que además sobreviva a recargar la página, se persiste en `localStorage`
+(`client/src/storage.ts`). Dos detalles de ese módulo:
+
+- **Se lee una sola vez**, con el inicializador perezoso de `useState`, no en
+  cada render.
+- **Todo acceso va en `try/catch`.** En modo incógnito, o con el navegador
+  configurado para bloquear datos de sitios, *acceder* a `localStorage` lanza
+  una excepción: sin el catch la aplicación no arrancaría. Si falla, se
+  degrada al comportamiento anterior, con el campo vacío.
+
 ## Decisiones y limitaciones conscientes
 
 - **Historial en memoria, últimos 50 mensajes por sala.** Se pierde al
@@ -233,12 +254,12 @@ no desborda horizontalmente.
   desconecte a quien no responda.
 - **Sin reconexión automática.** Si se cae la conexión se muestra el estado
   y el usuario puede volver al Home.
-- **Sin persistencia ni autenticación.** El nombre es libre y no se valida
-  contra nada.
+- **Sin autenticación.** El nombre es libre y no se valida contra nada: es un
+  identificador de conveniencia, no una identidad.
 - **Navegación por estado, sin router.** `App.tsx` decide entre `Home` y
-  `Room` con un `useState<Session | null>`; recargar dentro de una sala
-  devuelve al Home, que es el comportamiento esperado porque el nombre vive
-  solo en memoria.
+  `Room` con un `useState<RoomId | null>`. Recargar dentro de una sala
+  devuelve al Home (con el nombre ya puesto), no a la sala: se recuerda quién
+  sos, no dónde estabas.
 - **"Mensaje propio" se determina por nombre.** Si dos personas eligen el
   mismo nombre, ambas verán los mensajes de la otra como propios. Resolverlo
   bien requeriría un id de cliente asignado por el servidor.
