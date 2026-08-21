@@ -74,3 +74,38 @@ export function parseClientEvent(raw: unknown): ClientEvent | null {
 
   return null;
 }
+
+/**
+ * Frontera del sistema, sentido servidor -> cliente: lo que llega por el
+ * socket es JSON sin tipar. Se valida la forma del sobre (el `type` y la
+ * presencia/tipo basico de cada campo), no el contenido de cada `Message`
+ * dentro de `messages`/`message`: esos objetos los arma el servidor con
+ * datos que ya pasaron por su propio borde validado (`parseClientEvent` +
+ * el estado de `rooms.ts`), asi que alcanza con confirmar que el sobre no
+ * llegó corrompido.
+ */
+export function parseServerEvent(raw: unknown): ServerEvent | null {
+  if (typeof raw !== "object" || raw === null) return null;
+
+  const candidate = raw as Record<string, unknown>;
+
+  if (candidate.type === "HISTORY") {
+    return Array.isArray(candidate.messages)
+      ? { type: "HISTORY", messages: candidate.messages as Message[] }
+      : null;
+  }
+
+  if (candidate.type === "MESSAGE") {
+    return typeof candidate.message === "object" && candidate.message !== null
+      ? { type: "MESSAGE", message: candidate.message as Message }
+      : null;
+  }
+
+  if (candidate.type === "ERROR") {
+    return typeof candidate.reason === "string"
+      ? { type: "ERROR", reason: candidate.reason }
+      : null;
+  }
+
+  return null;
+}
