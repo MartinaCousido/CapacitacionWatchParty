@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { parseServerEvent } from "../../../shared/types";
 import type { ClientEvent, Message, RoomId, ServerEvent } from "../../../shared/types";
 
 export type Status = "connecting" | "open" | "closed" | "error";
@@ -15,19 +16,39 @@ export function useRoomSocket(roomId: RoomId, user: string) {
   // porque se recrearia en cada render, perdiendo la conexion.
   const socketRef = useRef<WebSocket | null>(null);
 
+  // Distingue "nunca llego a abrir" (error real) de "abrio y despues se
+  // cayo" (conexion perdida): ambos casos disparan onclose, asi que sin
+  // este ref el estado "error" quedaria pisado siempre por "closed".
+  const hasOpenedRef = useRef(false);
+
   useEffect(() => {
+    hasOpenedRef.current = false;
+
     const ws = new WebSocket(
       `${SERVER_URL}?room=${roomId}&user=${encodeURIComponent(user)}`,
     );
     socketRef.current = ws;
     setStatus("connecting");
 
-    ws.onopen = () => setStatus("open");
-    ws.onclose = () => setStatus("closed");
+    ws.onopen = () => {
+      hasOpenedRef.current = true;
+      setStatus("open");
+    };
+    ws.onclose = () => setStatus(hasOpenedRef.current ? "closed" : "error");
     ws.onerror = () => setStatus("error");
 
     ws.onmessage = (raw) => {
-      const event: ServerEvent = JSON.parse(raw.data);
+      // Borde no tipado: `raw.data` es JSON crudo. Se parsea y se valida con
+      // parseServerEvent (nunca una aserion directa a ServerEvent), y un
+      // frame corrompido o no-JSON se descarta en silencio en vez de tirar
+      // dentro del handler.
+      let event: ServerEvent | null = null;
+      try {
+        event = parseServerEvent(JSON.parse(String(raw.data)));
+      } catch {
+        event = null;
+      }
+      if (!event) return;
 
       switch (event.type) {
         case "HISTORY":
@@ -52,7 +73,14 @@ export function useRoomSocket(roomId: RoomId, user: string) {
     // Limpieza al desmontar: esto es lo que evita la fuga de memoria.
     // El close() de aca es el mismo evento que el ws.on("close") del servidor.
     return () => {
+      // Los tres handlers se desenganchan, no solo onmessage: en StrictMode
+      // el socket viejo (A) puede seguir vivo cuando ya se creo el nuevo (B).
+      // Si A conserva su onclose/onerror, cuando A termine de cerrarse solo
+      // pisaria el estado que ya reporto B (p. ej. "open" -> "closed"),
+      // dejando la UI en un estado que no corresponde a la conexion real.
       ws.onmessage = null;
+      ws.onclose = null;
+      ws.onerror = null;
 
       if (ws.readyState === WebSocket.CONNECTING) {
         // StrictMode monta, desmonta y remonta en desarrollo. Cerrar un socket
@@ -60,6 +88,7 @@ export function useRoomSocket(roomId: RoomId, user: string) {
         // cerrarlo ordenadamente.
         ws.onopen = () => ws.close(1000, "Salio de la sala");
       } else {
+        ws.onopen = null;
         ws.close(1000, "Salio de la sala");
       }
 
