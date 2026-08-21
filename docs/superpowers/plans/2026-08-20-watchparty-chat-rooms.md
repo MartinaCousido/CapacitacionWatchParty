@@ -1,5 +1,10 @@
 # Mini-WatchParty Chat Rooms — Plan de Implementación
 
+> **Estado: documento previo a la implementación.**
+> El código cambió después por hallazgos de code review, así que algunos
+> pasajes de este documento ya no describen exactamente lo que se entregó.
+> La fuente de verdad de lo implementado es el `README.md` de la raíz.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Construir una app web donde el usuario elige entre dos partidos y entra a una sala de chat en vivo cuyos mensajes llegan únicamente a quienes están en esa misma sala.
