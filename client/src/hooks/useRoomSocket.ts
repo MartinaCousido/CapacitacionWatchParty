@@ -6,7 +6,10 @@ export type Status = "connecting" | "open" | "closed" | "error";
 
 // El servidor lee `PORT` del entorno, asi que el cliente tiene que poder
 // apuntar a otro lado sin recompilar.
-const SERVER_URL = import.meta.env.VITE_WS_URL ?? "ws://localhost:8080";
+// La anotacion `: string` no es decorativa: los tipos por defecto de Vite
+// declaran import.meta.env como Record<string, any>, asi que sin esto
+// SERVER_URL entraria al codigo como `any`.
+const SERVER_URL: string = import.meta.env.VITE_WS_URL ?? "ws://localhost:8080";
 
 export function useRoomSocket(roomId: RoomId, user: string) {
   const [messages, setMessages] = useState<Message[]>([]);
