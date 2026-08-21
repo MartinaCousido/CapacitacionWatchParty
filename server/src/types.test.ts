@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isRoomId, isReactionId, parseClientEvent } from "../../shared/types";
+import { isRoomId, isReactionId, parseClientEvent, parseServerEvent } from "../../shared/types";
 
 describe("isRoomId", () => {
   it("acepta una sala que existe", () => {
@@ -62,5 +62,53 @@ describe("parseClientEvent", () => {
     expect(parseClientEvent(null)).toBeNull();
     expect(parseClientEvent("CHAT")).toBeNull();
     expect(parseClientEvent(undefined)).toBeNull();
+  });
+});
+
+describe("parseServerEvent", () => {
+  const mensaje = {
+    id: "1",
+    roomId: "boca-river",
+    user: "Martina",
+    timestamp: 1000,
+    kind: "text",
+    text: "vamos",
+  };
+
+  it("acepta un HISTORY con lista de mensajes", () => {
+    expect(parseServerEvent({ type: "HISTORY", messages: [mensaje] }))
+      .toEqual({ type: "HISTORY", messages: [mensaje] });
+  });
+
+  it("rechaza un HISTORY cuyo messages no es array", () => {
+    expect(parseServerEvent({ type: "HISTORY", messages: "no-array" })).toBeNull();
+  });
+
+  it("acepta un MESSAGE con mensaje", () => {
+    expect(parseServerEvent({ type: "MESSAGE", message: mensaje }))
+      .toEqual({ type: "MESSAGE", message: mensaje });
+  });
+
+  it("rechaza un MESSAGE sin message", () => {
+    expect(parseServerEvent({ type: "MESSAGE" })).toBeNull();
+  });
+
+  it("acepta un ERROR con reason", () => {
+    expect(parseServerEvent({ type: "ERROR", reason: "sala invalida" }))
+      .toEqual({ type: "ERROR", reason: "sala invalida" });
+  });
+
+  it("rechaza un ERROR cuyo reason no es string", () => {
+    expect(parseServerEvent({ type: "ERROR", reason: 404 })).toBeNull();
+  });
+
+  it("rechaza un tipo desconocido", () => {
+    expect(parseServerEvent({ type: "PING" })).toBeNull();
+  });
+
+  it("rechaza valores que no son objetos", () => {
+    expect(parseServerEvent(null)).toBeNull();
+    expect(parseServerEvent("HISTORY")).toBeNull();
+    expect(parseServerEvent(undefined)).toBeNull();
   });
 });
