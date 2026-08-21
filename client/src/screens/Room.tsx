@@ -2,6 +2,7 @@ import { MATCHES, type RoomId } from "../../../shared/types";
 import { useRoomSocket, type Status } from "../hooks/useRoomSocket";
 import MessageList from "../components/MessageList";
 import ChatInput from "../components/ChatInput";
+import ReactionBar from "../components/ReactionBar";
 
 type Props = { roomId: RoomId; user: string; onLeave: () => void };
 
@@ -47,6 +48,11 @@ export default function Room({ roomId, user, onLeave }: Props) {
       {error && (
         <p className="px-4 pb-2 text-sm text-red-400">{error}</p>
       )}
+
+      <ReactionBar
+        onReact={(reactionId) => send({ type: "REACTION", reactionId })}
+        disabled={status !== "open"}
+      />
 
       <ChatInput
         onSend={(text) => send({ type: "CHAT", text })}
