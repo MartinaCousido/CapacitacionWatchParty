@@ -20,3 +20,6 @@ build/
 # Logs
 *.log
 npm-debug.log*
+
+# Script descartable de verificacion manual
+server/verify-isolation.mjs
