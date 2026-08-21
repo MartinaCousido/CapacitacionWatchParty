@@ -4,12 +4,6 @@ Challenge técnico de onboarding. Aplicación web donde el usuario elige entre d
 partidos y entra a una sala de chat en tiempo real cuyos mensajes llegan
 únicamente a quienes están en esa misma sala.
 
-![Captura de la aplicación](docs/captura.png)
-
-La captura muestra la sala de Boca vs. River con dos usuarios conectados:
-mensajes propios a la derecha en verde, ajenos a la izquierda, y dos
-reacciones rápidas con su estilo diferenciado del texto libre.
-
 ## Stack
 
 - **Cliente:** React + Vite + TypeScript + Tailwind CSS v4
@@ -46,9 +40,9 @@ Abrir `http://localhost:5173`. Para ver el aislamiento, abrir dos pestañas y
 entrar a salas distintas.
 
 ```bash
-cd server && npm test        # 30 tests: contrato (shared/types.ts) + registro de salas
+cd server && npm test        # 39 tests: contrato, registro de salas e integracion
 cd server && npm run typecheck
-cd client && npx tsc -b       # nunca --noEmit: tsc -b rechaza esa combinación
+cd client && npm run typecheck
 ```
 
 ## Cómo está estructurada la separación de salas en el backend

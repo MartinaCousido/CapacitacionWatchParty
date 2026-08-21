@@ -51,8 +51,10 @@ export function countClients(roomId: RoomId): number {
   return rooms.get(roomId)?.clients.size ?? 0;
 }
 
+/** Devuelve una copia: quien la reciba no puede mutar el estado de la sala. */
 export function getHistory(roomId: RoomId): Message[] {
-  return rooms.get(roomId)?.history ?? [];
+  const room = rooms.get(roomId);
+  return room ? [...room.history] : [];
 }
 
 export function addToHistory(roomId: RoomId, message: Message): void {

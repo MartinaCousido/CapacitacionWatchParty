@@ -4,7 +4,12 @@ import type { ClientEvent, Message, RoomId, ServerEvent } from "../../../shared/
 
 export type Status = "connecting" | "open" | "closed" | "error";
 
-const SERVER_URL = "ws://localhost:8080";
+// El servidor lee `PORT` del entorno, asi que el cliente tiene que poder
+// apuntar a otro lado sin recompilar.
+// La anotacion `: string` no es decorativa: los tipos por defecto de Vite
+// declaran import.meta.env como Record<string, any>, asi que sin esto
+// SERVER_URL entraria al codigo como `any`.
+const SERVER_URL: string = import.meta.env.VITE_WS_URL ?? "ws://localhost:8080";
 
 export function useRoomSocket(roomId: RoomId, user: string) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -28,6 +33,10 @@ export function useRoomSocket(roomId: RoomId, user: string) {
       `${SERVER_URL}?room=${roomId}&user=${encodeURIComponent(user)}`,
     );
     socketRef.current = ws;
+    // Resetea el estado al reconectar (cambio de sala o de usuario). La regla
+    // apunta a los setState que podrian derivarse durante el render; aca no es
+    // el caso: el estado depende de una conexion externa que recien se abre.
+    // oxlint-disable-next-line react/set-state-in-effect
     setStatus("connecting");
 
     ws.onopen = () => {

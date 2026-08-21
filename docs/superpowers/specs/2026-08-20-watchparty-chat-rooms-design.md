@@ -1,5 +1,10 @@
 # Diseño: Mini-WatchParty Chat Rooms
 
+> **Estado: documento previo a la implementación.**
+> El código cambió después por hallazgos de code review, así que algunos
+> pasajes de este documento ya no describen exactamente lo que se entregó.
+> La fuente de verdad de lo implementado es el `README.md` de la raíz.
+
 **Fecha:** 2026-08-20
 **Estado:** Aprobado, listo para plan de implementación
 **Origen:** Challenge técnico de onboarding (ticket `8-capacitacion-deploy.md`)
@@ -226,8 +231,23 @@ Por eso el borde se valida a mano, una sola vez:
 
 ```ts
 export function parseClientEvent(raw: unknown): ClientEvent | null;
+export function parseServerEvent(raw: unknown): ServerEvent | null;
 export function isRoomId(value: string): value is RoomId;
 ```
+
+**Corrección posterior a la implementación:** el diseño original validaba solo
+el borde de entrada del servidor. La review señaló que el cliente hacía lo
+mismo que se le reprocha a cualquiera —asignar el resultado de `JSON.parse` a
+un tipo sin comprobarlo— así que `shared/types.ts` terminó exportando también
+`parseServerEvent`, y el archivo del contrato valida los dos sentidos. El
+cliente valida la forma del sobre (`type` y sus campos), no cada `Message`
+anidado: el productor es nuestro propio servidor, que ya construye esos
+mensajes él mismo.
+
+El hook además guarda un segundo ref, `hasOpenedRef`, para distinguir "nunca
+llegó a abrir" (estado `error`) de "abrió y se cayó" (estado `closed`): como
+`onerror` siempre viene seguido de `onclose`, sin ese ref el estado `error`
+quedaba pisado y era inalcanzable.
 
 `unknown` y no `any` como entrada: `unknown` obliga a comprobar antes de acceder
 a nada. El servidor llama `parseClientEvent` apenas recibe; si devuelve `null`,
@@ -459,10 +479,19 @@ export function useRoomSocket(roomId: RoomId, user: string) {
     };
 
     return () => {
+      // Se desenganchan los TRES handlers, no solo onmessage. Bajo StrictMode
+      // el socket viejo termina de cerrarse DESPUÉS de que el nuevo abrió: si
+      // su onclose siguiera vivo, pisaría el estado con "closed" y la sala
+      // quedaría mostrando "desconectado" con el input deshabilitado mientras
+      // en realidad sigue recibiendo mensajes.
       ws.onmessage = null;
+      ws.onclose = null;
+      ws.onerror = null;
+
       if (ws.readyState === WebSocket.CONNECTING) {
         ws.onopen = () => ws.close(1000, "Salió de la sala");
       } else {
+        ws.onopen = null;
         ws.close(1000, "Salió de la sala");
       }
       socketRef.current = null;
